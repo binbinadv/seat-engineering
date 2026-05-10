@@ -1,0 +1,88 @@
+baseURL: "https://yourusername.github.io/seat-engineering/"
+title: "座椅工程师手记"
+theme: "PaperMod"
+languageCode: "zh-cn"
+defaultContentLanguage: "zh"
+enableRobotsTXT: true
+enableEmoji: true
+buildFuture: true
+paginate: 6
+
+params:
+  env: production
+  description: "一个主机厂座椅工程师的视角——看懂每天坐着的那个座椅"
+  author: "小黑"
+  keywords: [座椅工程, 汽车座椅, 工业设计, 汽车工程师, 座椅设计]
+  defaultTheme: auto
+  disableThemeToggle: false
+  ShowReadingTime: true
+  ShowShareButtons: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowWordCount: true
+  ShowRssButtonInSectionTermList: true
+  UseHugoToc: true
+  comments: false
+  images: ["images/social-card.png"]
+
+  homeInfoParams:
+    Title: "👋 欢迎来到 座椅工程师手记"
+    Content: >
+      🚗 主机厂座椅工程师 · 工业设计背景
+
+      从发泡配方到缝线角度，从人机工程到 NVH 异响——这里是一个座椅工程师带你从「里面」看汽车。
+
+      不聊参数堆砌，不讲玄学。用工程师的视角，讲清楚你每天坐着的那个座椅。
+
+  socialIcons:
+    - name: github
+      title: GitHub
+      url: "https://github.com/yourusername"
+    - name: email
+      title: 联系我
+      url: "mailto:hello@example.com"
+
+  label:
+    text: "座椅工程师手记"
+    icon: /favicon.ico
+    iconHeight: 35
+
+  assets:
+    disableHLJS: true
+    favicon: "/favicon.ico"
+
+  cover:
+    hiddenInList: false
+    hiddenInSingle: false
+
+menu:
+  main:
+    - identifier: categories
+      name: 分类
+      url: /categories/
+      weight: 10
+    - identifier: tags
+      name: 标签
+      url: /tags/
+      weight: 20
+    - identifier: archives
+      name: 归档
+      url: /archives/
+      weight: 30
+    - identifier: about
+      name: 关于
+      url: /about/
+      weight: 40
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
+permalinks:
+  post: /:year/:month/:slug/
+
+taxonomies:
+  category: categories
+  tag: tags
