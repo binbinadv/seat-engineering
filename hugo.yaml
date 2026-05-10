@@ -1,4 +1,4 @@
-baseURL: "https://yourusername.github.io/seat-engineering/"
+baseURL: "https://binbinadv.github.io/seat-engineering/"
 title: "座椅工程师手记"
 theme: "PaperMod"
 languageCode: "zh-cn"
@@ -38,10 +38,10 @@ params:
   socialIcons:
     - name: github
       title: GitHub
-      url: "https://github.com/yourusername"
+      url: "https://github.com/binbinadv"
     - name: email
       title: 联系我
-      url: "mailto:hello@example.com"
+      url: "mailto:binbinadv@example.com"
 
   label:
     text: "座椅工程师手记"
