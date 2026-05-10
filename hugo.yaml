@@ -70,6 +70,10 @@ menu:
       name: 归档
       url: /archives/
       weight: 30
+    - identifier: voice
+      name: 🎙️ 语音
+      url: /voice/
+      weight: 33
     - identifier: game
       name: 🎮 小游戏
       url: /game/

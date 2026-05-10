@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<title>语音助手 - 座椅工程师手记</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a1a;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', sans-serif;
+    overflow: hidden;
+    touch-action: none;
+  }
+  .container {
+    width: 100vw;
+    max-width: 480px;
+    height: 100vh;
+    max-height: 860px;
+    background: linear-gradient(180deg, #0f0c29 0%, #1a1a3e 40%, #16213e 100%);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(233,69,96,0.15);
+  }
+  /* Header */
+  .header {
+    padding: 20px 20px 12px;
+    text-align: center;
+    border-bottom: 1px solid rgba(233,69,96,0.2);
+  }
+  .header h1 { color: #e94560; font-size: 18px; letter-spacing: 2px; }
+  .header .sub { color: #666; font-size: 12px; margin-top: 2px; }
+  
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  
+  .msg {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.5;
+    animation: fadeIn 0.3s ease;
+    word-break: break-word;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .msg.user {
+    align-self: flex-end;
+    background: #4fc3f7;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.ai {
+    align-self: flex-start;
+    background: rgba(255,255,255,0.08);
+    color: #ddd;
+    border-bottom-left-radius: 4px;
+    border-left: 2px solid #e94560;
+  }
+  .msg.ai.speaking {
+    border-left-color: #4fc3f7;
+  }
+  .msg .time {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    margin-top: 4px;
+    text-align: right;
+  }
+  .msg.user .time { color: rgba(255,255,255,0.5); }
+  
+  /* Typing indicator */
+  .typing {
+    align-self: flex-start;
+    display: none;
+    padding: 12px 18px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 14px;
+    border-bottom-left-radius: 4px;
+    border-left: 2px solid #e94560;
+  }
+  .typing.active { display: flex; gap: 4px; }
+  .typing span {
+    width: 7px; height: 7px;
+    background: #e94560;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+  
+  /* Voice button area */
+  .voice-area {
+    padding: 12px 20px 24px;
+    text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .mic-btn {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #e94560, #ff6b81);
+    color: #fff;
+    font-size: 32px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 24px rgba(233,69,96,0.3);
+    position: relative;
+  }
+  .mic-btn:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(233,69,96,0.5); }
+  .mic-btn:active { transform: scale(0.95); }
+  .mic-btn.listening {
+    background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+    box-shadow: 0 0 40px rgba(79,195,247,0.5);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 20px rgba(79,195,247,0.3); }
+    50% { box-shadow: 0 0 50px rgba(79,195,247,0.6); }
+    100% { box-shadow: 0 0 20px rgba(79,195,247,0.3); }
+  }
+  .mic-btn.disabled { background: #444; box-shadow: none; cursor: not-allowed; }
+  
+  .voice-hint {
+    color: #666;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  .voice-hint .active-text { color: #4fc3f7; }
+  
+  /* Waveform animation */
+  .wave {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    height: 30px;
+    margin-top: 8px;
+  }
+  .wave.active { display: flex; }
+  .wave span {
+    width: 3px;
+    background: #4fc3f7;
+    border-radius: 2px;
+    animation: wave 0.8s infinite ease;
+  }
+  .wave span:nth-child(1) { height: 12px; animation-delay: 0s; }
+  .wave span:nth-child(2) { height: 20px; animation-delay: 0.1s; }
+  .wave span:nth-child(3) { height: 8px; animation-delay: 0.2s; }
+  .wave span:nth-child(4) { height: 24px; animation-delay: 0.3s; }
+  .wave span:nth-child(5) { height: 14px; animation-delay: 0.4s; }
+  @keyframes wave { 0%,100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+  
+  /* Quick actions */
+  .quick-actions {
+    display: flex;
+    gap: 6px;
+    padding: 0 20px 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .quick-btn {
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: 1px solid #444;
+    background: transparent;
+    color: #888;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .quick-btn:hover { border-color: #e94560; color: #e94560; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🎙️ 语音助手</h1>
+    <div class="sub">说话就行，我来回答</div>
+  </div>
+  
+  <div class="chat-area" id="chatArea">
+    <!-- Messages appear here -->
+  </div>
+  
+  <div class="typing" id="typing">
+    <span></span><span></span><span></span>
+  </div>
+  
+  <div class="quick-actions" id="quickActions">
+    <button class="quick-btn" onclick="quickAsk('介绍一下这个博客')">📖 博客介绍</button>
+    <button class="quick-btn" onclick="quickAsk('看游戏')">🎮 玩游戏</button>
+    <button class="quick-btn" onclick="quickAsk('文章列表')">📝 文章</button>
+  </div>
+  
+  <div class="voice-area">
+    <div class="wave" id="wave"><span></span><span></span><span></span><span></span><span></span></div>
+    <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤</button>
+    <div class="voice-hint" id="voiceHint">点击麦克风说话</div>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// 🎙️ 语音助手 - 座椅工程师手记
+// ==========================================
+
+// === Knowledge Base ===
+const KNOWLEDGE = {
+  blog: {
+    title: '座椅工程师手记',
+    desc: '一个主机厂座椅工程师的个人博客，工业设计背景，聊座椅设计、人机工程、行业日常。',
+    author: '小黑',
+  },
+  articles: [
+    { title: '10万和30万的车，座椅到底差在哪？', desc: '从发泡、骨架、面料到功能配置，拆解座椅成本差异。' },
+    { title: '主机厂座椅工程师：我每天都在跟供应商吵架', desc: 'PPAP审核、实验失败、每周例会——座椅工程师的真实日常。' },
+    { title: '汽车座椅的人机工程，设计师到底在设计什么？', desc: 'H点、脊柱曲线、压力分布、法规红线——一把座椅背后的设计逻辑。' },
+    { title: '车开了两年座椅开始咯吱响？', desc: '异响三大来源和自检步骤，工程师教你解决。' },
+    { title: '工业设计毕业，我在主机厂做座椅工程师', desc: '一个工业设计师的另类职业选择。' },
+    { title: '汽车座椅的缝线——设计师藏在细节里的签名', desc: '缝线工艺、品牌语言、工程师的噩梦。' },
+  ],
+  game: {
+    title: '跑酷射击小游戏',
+    desc: '闯关式跑酷射击游戏，自由瞄准，5个关卡，移动端适配。',
+  },
+  responses: {
+    default: [
+      '嗯，我在听。你可以问我关于博客、文章或者游戏的问题。',
+      '有什么想聊的？我这有座椅工程的干货，也有小游戏可以玩。',
+      '你可以说"介绍博客"、"看游戏"或者"文章列表"试试。',
+    ],
+    hello: ['你好呀！我是小黑，你的座椅工程师助手 🚗', '嗨！欢迎来聊天，有什么想了解的？', '嘿！我在呢，说吧～'],
+    thanks: ['不客气！随时找我聊 😊', '应该的～还有啥想问的？'],
+    bye: ['拜拜！下次再来聊～', '回见！👋 需要我的时候说一声'],
+    good: ['哈哈那就好！', '好嘞！', '不错不错 👍'],
+    who: ['我是小黑，这个博客的AI助手，座椅工程师一枚 🚗', '叫我小黑就行！一个懂座椅也懂代码的AI'],
+  },
+};
+
+// === State ===
+let isListening = false;
+let recognition = null;
+let isSpeaking = false;
+let synthesizer = window.speechSynthesis;
+let welcomeShown = false;
+
+// === DOM ===
+const chatArea = document.getElementById('chatArea');
+const micBtn = document.getElementById('micBtn');
+const voiceHint = document.getElementById('voiceHint');
+const typing = document.getElementById('typing');
+const wave = document.getElementById('wave');
+
+// === Speech Recognition ===
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognitionSupported = !!SpeechRecognition;
+const synthesisSupported = !!window.speechSynthesis;
+const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+function initRecognition() {
+  if (!recognitionSupported) return;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'zh-CN';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+  
+  recognition.onstart = () => {
+    isListening = true;
+    micBtn.classList.add('listening');
+    wave.classList.add('active');
+    voiceHint.innerHTML = '<span class="active-text">🎤 听着呢，说吧...</span>';
+  };
+  
+  recognition.onerror = (e) => {
+    console.log('STT error:', e.error);
+    if (e.error === 'no-speech') {
+      voiceHint.textContent = '没听到声音，再试一次？';
+    } else if (e.error === 'not-allowed') {
+      voiceHint.textContent = '⚠️ 麦克风权限被拒绝';
+    } else {
+      voiceHint.textContent = `出错: ${e.error}`;
+    }
+    stopListening();
+  };
+  
+  recognition.onend = () => {
+    if (isListening) {
+      // Auto-restart if still should be listening
+      if (!recognition.stopping) {
+        try { recognition.start(); } catch(e) {}
+      }
+    }
+  };
+  
+  recognition.onresult = (e) => {
+    let finalText = '';
+    let interimText = '';
+    
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalText += e.results[i][0].transcript;
+      } else {
+        interimText += e.results[i][0].transcript;
+      }
+    }
+    
+    if (finalText) {
+      voiceHint.innerHTML = `<span class="active-text">你说: ${finalText}</span>`;
+      // Stop and process
+      recognition.stopping = true;
+      stopListening();
+      processUserInput(finalText);
+    } else if (interimText) {
+      voiceHint.innerHTML = `<span class="active-text">🎤 ${interimText}</span>`;
+    }
+  };
+}
+
+function toggleMic() {
+  if (isSpeaking) return;
+  
+  if (isListening) {
+    stopListening();
+  } else {
+    startListening();
+  }
+}
+
+function startListening() {
+  if (isSpeaking) return;
+  if (!recognitionSupported) {
+    voiceHint.textContent = '⚠️ 你的浏览器不支持语音识别，试试 Chrome';
+    return;
+  }
+  
+  if (!recognition) initRecognition();
+  recognition.stopping = false;
+  try { recognition.start(); } catch(e) {
+    voiceHint.textContent = '无法启动麦克风';
+  }
+}
+
+function stopListening() {
+  isListening = false;
+  micBtn.classList.remove('listening');
+  wave.classList.remove('active');
+  if (recognition) {
+    try { recognition.stop(); } catch(e) {}
+  }
+}
+
+// === Chat ===
+function addMessage(text, role = 'ai') {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  div.innerHTML = `${text}<div class="time">${time}</div>`;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  return div;
+}
+
+function showTyping() { typing.classList.add('active'); }
+function hideTyping() { typing.classList.remove('active'); }
+
+// === Text-to-Speech ===
+function speak(text, callback) {
+  if (!synthesisSupported) { if (callback) callback(); return; }
+  
+  // Stop any ongoing speech
+  synthesizer.cancel();
+  
+  // Split into manageable chunks for Chinese
+  const chunkSize = 120;
+  const chunks = [];
+  for (let i = 0; i < text.length; i += chunkSize) {
+    chunks.push(text.substring(i, i + chunkSize));
+  }
+  
+  let chunkIdx = 0;
+  isSpeaking = true;
+  micBtn.classList.add('disabled');
+  
+  function speakNext() {
+    if (chunkIdx >= chunks.length) {
+      isSpeaking = false;
+      micBtn.classList.remove('disabled');
+      if (callback) callback();
+      return;
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(chunks[chunkIdx]);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 1.05;
+    utterance.pitch = 1.0;
+    
+    // Try to find a good Chinese voice
+    const voices = synthesizer.getVoices();
+    const zhVoice = voices.find(v => v.lang.startsWith('zh'));
+    if (zhVoice) utterance.voice = zhVoice;
+    
+    utterance.onend = () => {
+      chunkIdx++;
+      speakNext();
+    };
+    utterance.onerror = () => {
+      chunkIdx++;
+      speakNext();
+    };
+    
+    synthesizer.speak(utterance);
+  }
+  
+  // If voices aren't loaded yet, wait
+  if (synthesizer.getVoices().length === 0) {
+    synthesizer.onvoiceschanged = () => {
+      speakNext();
+    };
+    setTimeout(speakNext, 500);
+  } else {
+    speakNext();
+  }
+}
+
+// === AI Response ===
+function getAIResponse(input) {
+  const lower = input.toLowerCase();
+  
+  // Greetings
+  if (/你好|嗨|hi|hello|hey/i.test(lower)) {
+    return pick(KNOWLEDGE.responses.hello);
+  }
+  
+  // Thanks
+  if (/谢谢|感谢|多谢|thx|thanks/i.test(lower)) {
+    return pick(KNOWLEDGE.responses.thanks);
+  }
+  
+  // Goodbye
+  if (/再见|拜拜|bye|回头|下次/i.test(lower)) {
+    return pick(KNOWLEDGE.responses.bye);
+  }
+  
+  // Who
+  if (/你是谁|你叫什么|你是|名字/i.test(lower)) {
+    return pick(KNOWLEDGE.responses.who);
+  }
+  
+  // Blog intro
+  if (/博客|介绍|这个网站|什么博客|站点/i.test(lower)) {
+    return `这是「${KNOWLEDGE.blog.title}」——${KNOWLEDGE.blog.desc} 博主 ${KNOWLEDGE.blog.author} 是主机厂的座椅工程师，工业设计出身。`;
+  }
+  
+  // Game
+  if (/游戏|玩|跑酷|射击|game/i.test(lower)) {
+    return '🎮 我们有个跑酷射击闯关游戏！自由瞄准、二段跳、5个关卡，手机电脑都能玩。要我现在带你去游戏页面吗？';
+  }
+  
+  // Articles
+  if (/文章|列表|文章列表|有什么文章|内容/i.test(lower)) {
+    let resp = '📝 目前有 6 篇文章：\n';
+    KNOWLEDGE.articles.forEach((a, i) => {
+      resp += `${i+1}. ${a.title}\n`;
+    });
+    resp += '想了解哪篇？告诉我就行。';
+    return resp;
+  }
+  
+  // Specific article questions
+  for (const a of KNOWLEDGE.articles) {
+    if (lower.includes(a.title.substring(0, 4)) || input.includes(a.title.substring(0, 4))) {
+      return `「${a.title}」——${a.desc} 你想了解具体哪部分内容？`;
+    }
+  }
+  
+  // Game navigation
+  if (/打开|去|导航|跳转/g.test(lower) && (/游戏|play/i.test(lower) || /game/i.test(lower))) {
+    window.open('/seat-engineering/game/', '_blank');
+    return '游戏页面已打开，玩得开心！🎮';
+  }
+  
+  // About author
+  if (/关于|作者|博主|小黑/i.test(lower)) {
+    return '小黑是主机厂的座椅工程师，工业设计本硕。这个博客分享座椅设计的专业知识、行业日常和职业思考。你可以去看看「关于」页面了解更多～';
+  }
+  
+  // Seat knowledge
+  if (/座椅|汽车|设计|工程|异响|缝线|供应商/i.test(lower)) {
+    return `你对座椅工程感兴趣？来对了！博客里有 ${KNOWLEDGE.articles.length} 篇相关文章，从人机工程到异响自检都有。你想深入了解哪个话题？`;
+  }
+  
+  // Help
+  if (/帮助|help|功能|能做什么|你可以/i.test(lower)) {
+    return '你可以跟我聊这些：\n📖 介绍博客\n📝 文章列表\n🎮 玩游戏\n👤 关于博主\n或者随便聊聊座椅相关的话题～';
+  }
+  
+  // Positive
+  if (/好|不错|nice|cool|厉害|有趣/i.test(lower)) {
+    return pick(KNOWLEDGE.responses.good);
+  }
+  
+  // Fallback with context
+  return '嗯，我在听。你可以说"介绍博客"了解这里，说"文章列表"看有什么内容，或者说"玩游戏"去闯关 🎮';
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// === Process Input ===
+function processUserInput(text) {
+  addMessage(text, 'user');
+  showTyping();
+  
+  const response = getAIResponse(text);
+  
+  setTimeout(() => {
+    hideTyping();
+    const msgEl = addMessage(response, 'ai');
+    
+    // Auto-speak response
+    if (synthesisSupported) {
+      msgEl.classList.add('speaking');
+      speak(response, () => {
+        msgEl.classList.remove('speaking');
+      });
+    }
+    
+    voiceHint.textContent = '点击麦克风说话';
+    startListening();
+  }, 500 + Math.random() * 300);
+}
+
+// === Quick Actions ===
+function quickAsk(text) {
+  if (isListening) stopListening();
+  if (isSpeaking) { synthesizer.cancel(); isSpeaking = false; micBtn.classList.remove('disabled'); }
+  processUserInput(text);
+}
+
+// === Welcome Message ===
+function showWelcome() {
+  if (welcomeShown) return;
+  welcomeShown = true;
+  
+  const welcome = `👋 你好！我是小黑，你的语音助手。\n\n点击麦克风说话，或者点下面的快捷按钮。`;
+  addMessage(welcome, 'ai');
+  
+  // Auto-speak welcome
+  setTimeout(() => {
+    if (synthesisSupported) {
+      const lastMsg = chatArea.lastElementChild;
+      if (lastMsg) {
+        lastMsg.classList.add('speaking');
+        speak('你好！我是小黑，你的语音助手。点击麦克风说话，或者用下面的快捷按钮。', () => {
+          if (lastMsg) lastMsg.classList.remove('speaking');
+        });
+      }
+    }
+  }, 500);
+}
+
+// === Init ===
+if (recognitionSupported) {
+  initRecognition();
+} else {
+  voiceHint.textContent = '⚠️ 换 Chrome 浏览器可获得语音支持';
+  micBtn.classList.add('disabled');
+}
+
+showWelcome();
+
+// Preload voices for faster response
+if (synthesisSupported) {
+  synthesizer.getVoices();
+  if (synthesizer.onvoiceschanged) {
+    synthesizer.onvoiceschanged = () => { synthesizer.getVoices(); };
+  }
+}
+</script>
+</body>
+</html>
