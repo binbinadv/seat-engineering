@@ -697,18 +697,7 @@ function showWelcome() {
   const welcome = `👋 你好！我是小黑，你的聊天助手。\n\n打字或语音都可以——下面输入框直接打字，或者切换到语音模式说话。\n\n试试问问我：介绍博客、文章列表、玩游戏……`;
   addMessage(welcome, 'ai');
   
-  // Auto-speak welcome
-  setTimeout(() => {
-    if (synthesisSupported) {
-      const lastMsg = chatArea.lastElementChild;
-      if (lastMsg) {
-        lastMsg.classList.add('speaking');
-        speak('你好！我是小黑，你的语音助手。点击麦克风说话，或者用下面的快捷按钮。', () => {
-          if (lastMsg) lastMsg.classList.remove('speaking');
-        });
-      }
-    }
-  }, 500);
+  // 默认不朗读欢迎语
 }
 
 // === Init ===
