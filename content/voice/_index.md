@@ -61,8 +61,8 @@ ShowToc: false
 
 <div class="voice-card">
   <h2>🎙️ 语音助手</h2>
-  <p>说话就行，我来回答</p>
-  <p style="font-size:13px;color:#666">浏览器原生语音识别 + 合成，不需要联网AI</p>
+  <p>打字或语音，怎么方便怎么来</p>
+  <p style="font-size:13px;color:#666">文字聊天 + 语音输入 + 语音回答</p>
   
   <a href="/seat-engineering/voice-assistant.html" class="voice-link" target="_blank">▶ 打开语音助手</a>
 </div>

@@ -106,11 +106,85 @@
   .typing span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
   
-  /* Voice button area */
-  .voice-area {
-    padding: 12px 20px 24px;
-    text-align: center;
+  /* Input area */
+  .input-area {
+    padding: 8px 12px 20px;
     border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .input-area .text-input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid #444;
+    border-radius: 22px;
+    padding: 2px 4px 2px 16px;
+    transition: border-color 0.2s;
+  }
+  .input-area .text-input-wrap:focus-within {
+    border-color: #4fc3f7;
+  }
+  .text-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #eee;
+    font-size: 14px;
+    padding: 10px 0;
+    font-family: inherit;
+    min-width: 0;
+  }
+  .text-input::placeholder { color: #666; }
+  .send-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: #4fc3f7;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .send-btn:hover { background: #29b6f6; transform: scale(1.05); }
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn:disabled { background: #444; cursor: not-allowed; transform: none; }
+  
+  /* Toggle between voice/text */
+  .input-toggle {
+    display: flex;
+    gap: 0;
+    padding: 0 12px 4px;
+    justify-content: center;
+  }
+  .input-toggle button {
+    padding: 5px 16px;
+    border: 1px solid #444;
+    background: transparent;
+    color: #888;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .input-toggle button:first-child { border-radius: 10px 0 0 10px; }
+  .input-toggle button:last-child { border-radius: 0 10px 10px 0; }
+  .input-toggle button.active {
+    background: rgba(79,195,247,0.15);
+    border-color: #4fc3f7;
+    color: #4fc3f7;
+  }
+  
+  .voice-area {
+    padding: 4px 20px 8px;
+    text-align: center;
   }
   .mic-btn {
     width: 72px; height: 72px;
@@ -197,8 +271,8 @@
 <body>
 <div class="container">
   <div class="header">
-    <h1>🎙️ 语音助手</h1>
-    <div class="sub">说话就行，我来回答</div>
+    <h1>💬 聊天助手</h1>
+    <div class="sub">打字或语音，我都行</div>
   </div>
   
   <div class="chat-area" id="chatArea">
@@ -215,10 +289,26 @@
     <button class="quick-btn" onclick="quickAsk('文章列表')">📝 文章</button>
   </div>
   
-  <div class="voice-area">
-    <div class="wave" id="wave"><span></span><span></span><span></span><span></span><span></span></div>
-    <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤</button>
-    <div class="voice-hint" id="voiceHint">点击麦克风说话</div>
+  <div class="input-toggle" id="inputToggle">
+    <button class="active" onclick="setInputMode('text')" id="textTab">✏️ 打字</button>
+    <button onclick="setInputMode('voice')" id="voiceTab">🎤 语音</button>
+  </div>
+  
+  <!-- Text input (default) -->
+  <div id="textInputArea" class="input-area">
+    <div class="text-input-wrap">
+      <input type="text" class="text-input" id="textInput" placeholder="输入消息，按 Enter 发送..." autofocus>
+      <button class="send-btn" id="sendBtn" onclick="sendText()">➤</button>
+    </div>
+  </div>
+  
+  <!-- Voice input (hidden by default) -->
+  <div id="voiceInputArea" style="display:none">
+    <div class="voice-area">
+      <div class="wave" id="wave"><span></span><span></span><span></span><span></span><span></span></div>
+      <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤</button>
+      <div class="voice-hint" id="voiceHint">点击麦克风说话</div>
+    </div>
   </div>
 </div>
 
@@ -266,12 +356,14 @@ let recognition = null;
 let isSpeaking = false;
 let synthesizer = window.speechSynthesis;
 let welcomeShown = false;
+let inputMode = 'text'; // 'text' or 'voice'
 
 // === DOM ===
 const chatArea = document.getElementById('chatArea');
 const micBtn = document.getElementById('micBtn');
 const voiceHint = document.getElementById('voiceHint');
 const typing = document.getElementById('typing');
+const textInput = document.getElementById('textInput');
 const wave = document.getElementById('wave');
 
 // === Speech Recognition ===
@@ -541,16 +633,20 @@ function processUserInput(text) {
     hideTyping();
     const msgEl = addMessage(response, 'ai');
     
-    // Auto-speak response
-    if (synthesisSupported) {
+    // Auto-speak in voice mode
+    if (synthesisSupported && inputMode === 'voice') {
       msgEl.classList.add('speaking');
       speak(response, () => {
         msgEl.classList.remove('speaking');
       });
     }
     
-    voiceHint.textContent = '点击麦克风说话';
-    startListening();
+    if (inputMode === 'voice') {
+      voiceHint.textContent = '点击麦克风说话';
+      startListening();
+    } else {
+      textInput.focus();
+    }
   }, 500 + Math.random() * 300);
 }
 
@@ -561,12 +657,44 @@ function quickAsk(text) {
   processUserInput(text);
 }
 
+// === Input Mode ===
+function setInputMode(mode) {
+  inputMode = mode;
+  document.getElementById('textTab').classList.toggle('active', mode === 'text');
+  document.getElementById('voiceTab').classList.toggle('active', mode === 'voice');
+  document.getElementById('textInputArea').style.display = mode === 'text' ? 'flex' : 'none';
+  document.getElementById('voiceInputArea').style.display = mode === 'voice' ? 'block' : 'none';
+  
+  if (mode === 'text') {
+    if (isListening) stopListening();
+    textInput.focus();
+  }
+}
+
+function sendText() {
+  const text = textInput.value.trim();
+  if (!text) return;
+  textInput.value = '';
+  if (isSpeaking) { synthesizer.cancel(); isSpeaking = false; micBtn.classList.remove('disabled'); }
+  processUserInput(text);
+}
+
+// Enter key to send
+document.addEventListener('DOMContentLoaded', () => {
+  textInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendText();
+    }
+  });
+});
+
 // === Welcome Message ===
 function showWelcome() {
   if (welcomeShown) return;
   welcomeShown = true;
   
-  const welcome = `👋 你好！我是小黑，你的语音助手。\n\n点击麦克风说话，或者点下面的快捷按钮。`;
+  const welcome = `👋 你好！我是小黑，你的聊天助手。\n\n打字或语音都可以——下面输入框直接打字，或者切换到语音模式说话。\n\n试试问问我：介绍博客、文章列表、玩游戏……`;
   addMessage(welcome, 'ai');
   
   // Auto-speak welcome
